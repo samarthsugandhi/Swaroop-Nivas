@@ -31,7 +31,20 @@ export default function ReportsPage() {
         ]);
         const tenantMap = {};
         tenants.forEach(t => { tenantMap[t.id] = t; });
-        const rows = payments.map(p => ({ ...p, tenant: tenantMap[p.tenantId] || null }));
+        
+        // Deduplicate: If multiple records exist for the same tenant in this month/year, pick the Paid one
+        const uniquePayments = [];
+        const seen = new Set();
+        const sortedForDedupe = [...payments].sort((a, b) => (b.rentPaid ? 1 : 0) - (a.rentPaid ? 1 : 0));
+        
+        for (const p of sortedForDedupe) {
+          if (!seen.has(p.tenantId)) {
+            uniquePayments.push(p);
+            seen.add(p.tenantId);
+          }
+        }
+
+        const rows = uniquePayments.map(p => ({ ...p, tenant: tenantMap[p.tenantId] || null }));
 
         const totalRentExpected  = rows.reduce((s, r) => s + (Number(r.tenant?.rentAmount)||0), 0);
         const totalRentCollected = rows.reduce((s, r) => {

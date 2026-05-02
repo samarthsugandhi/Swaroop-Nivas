@@ -1,11 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AuthGuard from "@/components/AuthGuard";
 import BottomNav from "@/components/BottomNav";
 import HeaderControls from "@/components/HeaderControls";
-import { getDashboardStats, seedUnitsIfNeeded, getYearlyStats, splitUtilityBill } from "@/lib/firestore";
+import { getDashboardStats, seedUnitsIfNeeded, getYearlyStats, splitUtilityBill, cleanupDuplicates } from "@/lib/firestore";
 import { signOut } from "@/lib/auth";
 import { useLang } from "@/contexts/LangContext";
 import { TouchButton, TouchLink, PageTransition, TouchCard } from "@/components/Touch";
@@ -39,7 +38,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [showSplitter, setShowSplitter] = useState(false);
   const [splitType, setSplitType] = useState("electricity");
-  const [splitAmt, setSplitAmt] = useState("");
   const [splitting, setSplitting] = useState(false);
   const router = useRouter();
 
@@ -56,6 +54,9 @@ export default function DashboardPage() {
         const months = t("monthsShort");
         const chartData = yearly.map((val, i) => ({ name: months[i], revenue: val }));
         setYearlyData(chartData);
+
+        // Silent background cleanup of any accidental duplicates
+        cleanupDuplicates().catch(err => console.error("Auto-cleanup error:", err));
       } catch (e) {
         console.error(e);
         toast.error(t("failedLoad"));
