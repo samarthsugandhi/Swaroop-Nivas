@@ -6,6 +6,7 @@ import BottomNav from "@/components/BottomNav";
 import HeaderControls from "@/components/HeaderControls";
 import { getPastTenants } from "@/lib/firestore";
 import { useLang } from "@/contexts/LangContext";
+import { TouchButton, PageTransition } from "@/components/Touch";
 import { ArrowLeft, Calendar, Clock, IndianRupee, Phone } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -46,13 +47,13 @@ export default function HistoryPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen pb-nav" style={{ background: "var(--sn-bg)" }}>
+      <PageTransition className="min-h-screen pb-nav" style={{ background: "var(--sn-bg)" }}>
         {/* Header */}
         <div className="px-4 pt-12 pb-4" style={{ background: "var(--sn-surface)", borderBottom: "1px solid var(--sn-border)" }}>
           <div className="flex items-center gap-3">
-            <button onClick={() => router.back()} className="p-3 rounded-2xl bg-stone-100 dark:bg-stone-800 min-h-[48px] min-w-[48px] flex items-center justify-center active:scale-95 transition">
+            <TouchButton onClick={() => router.back()} className="p-3 rounded-2xl bg-stone-100 dark:bg-stone-800 min-h-[48px] min-w-[48px] flex items-center justify-center">
               <ArrowLeft size={22} className="text-stone-700 dark:text-stone-300"/>
-            </button>
+            </TouchButton>
             <div className="flex-1">
               <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50">{t("tenantHistory")}</h1>
               <p className="text-stone-500 dark:text-stone-400">{t("allPastTenants")}</p>
@@ -115,7 +116,7 @@ export default function HistoryPage() {
             </div>
           )}
         </div>
-      </div>
+      </PageTransition>
       <BottomNav />
     </AuthGuard>
   );

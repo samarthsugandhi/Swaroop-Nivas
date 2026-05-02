@@ -3,6 +3,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, Building2, UserPlus, History, FileBarChart2 } from "lucide-react";
 import { useLang } from "@/contexts/LangContext";
+import { TouchLink } from "@/components/Touch";
+import { motion } from "framer-motion";
 
 export default function BottomNav() {
   const pathname = usePathname();
@@ -17,7 +19,10 @@ export default function BottomNav() {
   ];
 
   return (
-    <nav
+    <motion.nav
+      initial={{ y: 100 }}
+      animate={{ y: 0 }}
+      transition={{ type: "spring", stiffness: 300, damping: 30 }}
       className="fixed bottom-0 left-0 right-0 z-50 border-t border-stone-200 dark:border-stone-800 safe-bottom"
       style={{ background: "var(--sn-surface, #fff)" }}
     >
@@ -27,20 +32,24 @@ export default function BottomNav() {
 
           if (isFab) {
             return (
-              <Link key={href} href={href} className="flex flex-col items-center -mt-6">
-                <span className="w-16 h-16 bg-walnut-600 dark:bg-walnut-400 rounded-full flex items-center justify-center shadow-lg shadow-walnut-200 dark:shadow-walnut-900 active:scale-95 transition-transform">
+              <TouchLink key={href} href={href} className="flex flex-col items-center -mt-6">
+                <motion.span 
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.9 }}
+                  className="w-16 h-16 bg-walnut-600 dark:bg-walnut-400 rounded-full flex items-center justify-center shadow-lg shadow-walnut-200 dark:shadow-walnut-900"
+                >
                   <Icon className="text-white dark:text-walnut-950" size={28} />
-                </span>
+                </motion.span>
                 <span className="text-[11px] text-walnut-600 dark:text-walnut-400 font-semibold mt-1">{label}</span>
-              </Link>
+              </TouchLink>
             );
           }
 
           return (
-            <Link
+            <TouchLink
               key={href}
               href={href}
-              className="flex flex-col items-center gap-1 px-4 py-1 rounded-xl transition-colors min-w-[56px]"
+              className="flex flex-col items-center gap-1 px-4 py-1 rounded-xl min-w-[56px]"
             >
               <Icon
                 size={24}
@@ -54,10 +63,10 @@ export default function BottomNav() {
               >
                 {label}
               </span>
-            </Link>
+            </TouchLink>
           );
         })}
       </div>
-    </nav>
+    </motion.nav>
   );
 }

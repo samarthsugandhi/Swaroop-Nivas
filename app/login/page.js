@@ -5,6 +5,7 @@ import { signIn } from "@/lib/auth";
 import { Building2, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useLang } from "@/contexts/LangContext";
 import HeaderControls from "@/components/HeaderControls";
+import { TouchButton, PageTransition } from "@/components/Touch";
 import toast from "react-hot-toast";
 
 export default function LoginPage() {
@@ -32,7 +33,7 @@ export default function LoginPage() {
   const inputCls = "w-full rounded-2xl px-4 py-4 text-base bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-walnut-500 placeholder:text-stone-400 transition min-h-[56px]";
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: "var(--sn-bg)" }}>
+    <PageTransition className="min-h-screen flex flex-col" style={{ background: "var(--sn-bg)" }}>
       {/* Top controls */}
       <div className="flex justify-end p-4">
         <HeaderControls />
@@ -93,20 +94,20 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <button
+            <TouchButton
               type="submit"
               disabled={loading}
-              className="w-full bg-walnut-600 dark:bg-walnut-500 text-white py-4 rounded-2xl text-xl font-bold active:scale-95 transition-all shadow-md mt-1 flex items-center justify-center gap-2 disabled:opacity-70 min-h-[60px]"
+              className="w-full bg-walnut-600 dark:bg-walnut-500 text-white py-4 rounded-2xl text-xl font-bold shadow-md mt-1 flex items-center justify-center gap-2 disabled:opacity-70 min-h-[60px]"
             >
               {loading
                 ? <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 : t("login")}
-            </button>
+            </TouchButton>
           </form>
 
           <p className="text-sm text-stone-400 dark:text-stone-600 text-center mt-5">{t("loginHint")}</p>
         </div>
       </div>
-    </div>
+    </PageTransition>
   );
 }

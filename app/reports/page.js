@@ -5,6 +5,7 @@ import BottomNav from "@/components/BottomNav";
 import HeaderControls from "@/components/HeaderControls";
 import { getPaymentsByMonthYear, getActiveTenants } from "@/lib/firestore";
 import { useLang } from "@/contexts/LangContext";
+import { PageTransition } from "@/components/Touch";
 import { FileBarChart2, IndianRupee, CheckCircle2, Clock, Zap, Droplets } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -52,7 +53,7 @@ export default function ReportsPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen pb-nav" style={{ background: "var(--sn-bg)" }}>
+      <PageTransition className="min-h-screen pb-nav" style={{ background: "var(--sn-bg)" }}>
         {/* Header */}
         <div className="px-4 pt-12 pb-4 sticky top-0 z-40" style={{ background: "var(--sn-surface)", borderBottom: "1px solid var(--sn-border)" }}>
           <div className="flex items-center justify-between mb-4">
@@ -172,7 +173,7 @@ export default function ReportsPage() {
             </>
           )}
         </div>
-      </div>
+      </PageTransition>
       <BottomNav />
     </AuthGuard>
   );

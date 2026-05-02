@@ -6,6 +6,7 @@ import BottomNav from "@/components/BottomNav";
 import HeaderControls from "@/components/HeaderControls";
 import { getUnits, getActiveTenants, getPaymentsByMonthYear } from "@/lib/firestore";
 import { useLang } from "@/contexts/LangContext";
+import { TouchLink, PageTransition } from "@/components/Touch";
 import { CheckCircle2, Clock, ChevronRight, IndianRupee, Phone } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -36,7 +37,7 @@ export default function UnitsPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen pb-nav" style={{ background: "var(--sn-bg)" }}>
+      <PageTransition className="min-h-screen pb-nav" style={{ background: "var(--sn-bg)" }}>
         {/* Header */}
         <div className="px-4 pt-12 pb-4 sticky top-0 z-40" style={{ background: "var(--sn-surface)", borderBottom: "1px solid var(--sn-border)" }}>
           <div className="flex items-center justify-between">
@@ -59,10 +60,10 @@ export default function UnitsPage() {
                 const isPaid  = payment?.rentPaid;
 
                 return (
-                  <Link
+                  <TouchLink
                     key={unit.id}
                     href={`/units/${unit.id}`}
-                    className="flex items-center gap-4 p-4 rounded-3xl active:scale-[0.98] transition-transform"
+                    className="flex items-center gap-4 p-4 rounded-3xl"
                     style={{ background: "var(--sn-surface)", border: "1px solid var(--sn-border)" }}
                   >
                     {/* Icon */}
@@ -111,11 +112,11 @@ export default function UnitsPage() {
                     </div>
 
                     <ChevronRight size={22} className="text-stone-300 dark:text-stone-600 flex-shrink-0" />
-                  </Link>
+                  </TouchLink>
                 );
               })}
         </div>
-      </div>
+      </PageTransition>
       <BottomNav />
     </AuthGuard>
   );

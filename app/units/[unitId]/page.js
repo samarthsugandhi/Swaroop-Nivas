@@ -11,10 +11,11 @@ import {
   markBillsPaid, vacateTenant, updateUnitNotes,
 } from "@/lib/firestore";
 import { useLang } from "@/contexts/LangContext";
+import { TouchButton, TouchLink, TouchCard, PageTransition } from "@/components/Touch";
 import {
   ArrowLeft, UserPlus, CheckCircle2, Clock, IndianRupee,
   Zap, Droplets, Phone, Calendar, LogOut, ChevronDown,
-  ChevronUp, FileText, Save,
+  ChevronUp, Save,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -28,8 +29,8 @@ function PaymentCard({ payment, rentAmount, onRentPaid, onSaveBills, onBillsPaid
   const inputCls = "w-full border border-stone-200 dark:border-stone-700 rounded-2xl px-4 py-3 text-base bg-stone-50 dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-walnut-500 min-h-[52px]";
 
   return (
-    <div className="rounded-3xl overflow-hidden" style={{ background: "var(--sn-surface)", border: "1px solid var(--sn-border)" }}>
-      <div className="flex items-center justify-between p-4 cursor-pointer active:opacity-80" onClick={() => setOpen(v => !v)}>
+    <TouchCard className="rounded-3xl overflow-hidden" style={{ background: "var(--sn-surface)", border: "1px solid var(--sn-border)" }}>
+      <div className="flex items-center justify-between p-4" onClick={() => setOpen(v => !v)}>
         <div>
           <p className="font-bold text-stone-900 dark:text-stone-50 text-lg">{monthName} {payment.year}</p>
           <div className="flex gap-2 mt-1 flex-wrap">
@@ -60,11 +61,11 @@ function PaymentCard({ payment, rentAmount, onRentPaid, onSaveBills, onBillsPaid
               </span>
               {payment.rentPaid
                 ? <span className="text-sm text-forest-600 dark:text-forest-400 font-semibold">{t("paidOn")} {payment.rentPaidDate}</span>
-                : <button
+                : <TouchButton
                     disabled={busy}
                     onClick={async () => { setBusy(true); await onRentPaid(payment.id); setBusy(false); }}
-                    className="px-5 py-3 bg-forest-600 dark:bg-forest-500 text-white rounded-2xl text-base font-bold active:scale-95 transition disabled:opacity-50 min-h-[52px]"
-                  >{t("markPaid")}</button>
+                    className="px-5 py-3 bg-forest-600 dark:bg-forest-500 text-white rounded-2xl text-base font-bold disabled:opacity-50 min-h-[52px]"
+                  >{t("markPaid")}</TouchButton>
               }
             </div>
           </div>
@@ -87,23 +88,23 @@ function PaymentCard({ payment, rentAmount, onRentPaid, onSaveBills, onBillsPaid
               </div>
             </div>
             <div className="flex gap-2">
-              <button
+              <TouchButton
                 disabled={busy}
                 onClick={async () => { setBusy(true); await onSaveBills(payment.id, elec, water); setBusy(false); }}
-                className="flex-1 py-3 bg-walnut-600 dark:bg-walnut-500 text-white rounded-2xl text-base font-bold active:scale-95 transition disabled:opacity-50 min-h-[52px]"
-              >{t("saveBills")}</button>
+                className="flex-1 py-3 bg-walnut-600 dark:bg-walnut-500 text-white rounded-2xl text-base font-bold disabled:opacity-50 min-h-[52px]"
+              >{t("saveBills")}</TouchButton>
               {!payment.billsPaid && (payment.electricityBill > 0 || payment.waterBill > 0) && (
-                <button
+                <TouchButton
                   disabled={busy}
                   onClick={async () => { setBusy(true); await onBillsPaid(payment.id); setBusy(false); }}
-                  className="flex-1 py-3 bg-forest-600 dark:bg-forest-500 text-white rounded-2xl text-base font-bold active:scale-95 transition disabled:opacity-50 min-h-[52px]"
-                >{t("billsPaid")}</button>
+                  className="flex-1 py-3 bg-forest-600 dark:bg-forest-500 text-white rounded-2xl text-base font-bold disabled:opacity-50 min-h-[52px]"
+                >{t("billsPaid")}</TouchButton>
               )}
             </div>
           </div>
         </div>
       )}
-    </div>
+    </TouchCard>
   );
 }
 
@@ -179,13 +180,13 @@ export default function UnitDetailPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen pb-nav" style={{ background: "var(--sn-bg)" }}>
+      <PageTransition className="min-h-screen pb-nav" style={{ background: "var(--sn-bg)" }}>
         {/* Header */}
         <div className="px-4 pt-12 pb-4" style={{ background: "var(--sn-surface)", borderBottom: "1px solid var(--sn-border)" }}>
           <div className="flex items-center gap-3">
-            <button onClick={() => router.back()} className="p-3 rounded-2xl bg-stone-100 dark:bg-stone-800 active:scale-95 transition min-h-[48px] min-w-[48px] flex items-center justify-center">
+            <TouchButton onClick={() => router.back()} className="p-3 rounded-2xl bg-stone-100 dark:bg-stone-800 min-h-[48px] min-w-[48px] flex items-center justify-center">
               <ArrowLeft size={22} className="text-stone-700 dark:text-stone-300"/>
-            </button>
+            </TouchButton>
             <div className="flex-1">
               <div className="flex items-center gap-2">
                 <span className="text-2xl">{unit?.icon}</span>
@@ -212,11 +213,11 @@ export default function UnitDetailPage() {
             <div className="rounded-3xl p-8 text-center space-y-4" style={card}>
               <p className="text-5xl">🏠</p>
               <p className="text-xl font-bold text-stone-700 dark:text-stone-300">{t("unitVacant")}</p>
-              <Link href={`/tenants/new?unit=${unitId}`}
-                className="inline-flex items-center gap-2 bg-walnut-600 dark:bg-walnut-500 text-white px-8 py-4 rounded-2xl text-lg font-bold active:scale-95 transition shadow-lg min-h-[56px]"
+              <TouchLink href={`/tenants/new?unit=${unitId}`}
+                className="inline-flex items-center justify-center gap-2 bg-walnut-600 dark:bg-walnut-500 text-white px-8 py-4 rounded-2xl text-lg font-bold shadow-lg min-h-[56px]"
               >
                 <UserPlus size={22}/>{t("addTenantBtn")}
-              </Link>
+              </TouchLink>
             </div>
           )}
 
@@ -251,18 +252,6 @@ export default function UnitDetailPage() {
                       </p>
                     </div>
                   ))}
-                  {tenant.idProofUrl && (
-                    <div className="col-span-2">
-                      <a
-                        href={tenant.idProofUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center justify-center gap-2 py-3 bg-walnut-50 dark:bg-walnut-900 text-walnut-700 dark:text-walnut-300 rounded-2xl text-sm font-bold active:scale-95 transition border border-walnut-200 dark:border-walnut-800 min-h-[52px]"
-                      >
-                        <FileText size={16}/>{t("download")}
-                      </a>
-                    </div>
-                  )}
                 </div>
 
                 {/* Running balance */}
@@ -273,16 +262,16 @@ export default function UnitDetailPage() {
                   <div className="flex justify-between border-t border-stone-200 dark:border-stone-700 pt-2"><span className="text-sm text-brick-600 dark:text-brick-400 font-medium">{t("pending")}</span><span className="font-bold text-brick-600 dark:text-brick-400">₹{(totalExpected - totalPaid).toLocaleString("en-IN")}</span></div>
                 </div>
 
-                <div className="flex gap-3">
-                  <Link href={`/tenants/new?unit=${unitId}`}
-                    className="flex-1 py-3.5 bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-200 rounded-2xl text-base font-bold text-center active:scale-95 transition min-h-[52px] flex items-center justify-center"
-                  >{t("changeTenant")}</Link>
-                  <button
+                <div className="flex gap-3 mt-4">
+                  <TouchLink href={`/tenants/new?unit=${unitId}`}
+                    className="flex-1 py-3.5 bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-200 rounded-2xl text-base font-bold text-center min-h-[52px] flex items-center justify-center"
+                  >{t("changeTenant")}</TouchLink>
+                  <TouchButton
                     onClick={() => setShowVacateModal(true)}
-                    className="flex-1 py-3.5 bg-brick-50 dark:bg-brick-900 text-brick-700 dark:text-brick-300 rounded-2xl text-base font-bold active:scale-95 transition flex items-center justify-center gap-2 min-h-[52px]"
+                    className="flex-1 py-3.5 bg-brick-50 dark:bg-brick-900 text-brick-700 dark:text-brick-300 rounded-2xl text-base font-bold flex items-center justify-center gap-2 min-h-[52px]"
                   >
                     <LogOut size={16}/>{t("vacate")}
-                  </button>
+                  </TouchButton>
                 </div>
               </div>
 
@@ -314,13 +303,13 @@ export default function UnitDetailPage() {
                 placeholder={t("notesPlaceholder")}
                 className="w-full border border-stone-200 dark:border-stone-700 rounded-2xl px-4 py-3 text-base bg-stone-50 dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-walnut-500 resize-none"
               />
-              <button
+              <TouchButton
                 disabled={savingNotes}
                 onClick={handleSaveNotes}
-                className="mt-3 w-full py-3.5 bg-walnut-600 dark:bg-walnut-500 text-white rounded-2xl text-base font-bold active:scale-95 transition flex items-center justify-center gap-2 disabled:opacity-60 min-h-[52px]"
+                className="mt-3 w-full py-3.5 bg-walnut-600 dark:bg-walnut-500 text-white rounded-2xl text-base font-bold flex items-center justify-center gap-2 disabled:opacity-60 min-h-[52px]"
               >
                 <Save size={18}/>{t("saveNotes")}
-              </button>
+              </TouchButton>
             </div>
           )}
         </div>
@@ -340,17 +329,17 @@ export default function UnitDetailPage() {
                 />
               </div>
               <div className="flex gap-3">
-                <button onClick={() => setShowVacateModal(false)} className="flex-1 py-4 bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-200 rounded-2xl text-base font-bold min-h-[56px]">{t("cancel")}</button>
-                <button
+                <TouchButton onClick={() => setShowVacateModal(false)} className="flex-1 py-4 bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-200 rounded-2xl text-base font-bold min-h-[56px]">{t("cancel")}</TouchButton>
+                <TouchButton
                   disabled={vacating}
                   onClick={handleVacate}
-                  className="flex-1 py-4 bg-brick-600 text-white rounded-2xl text-base font-bold active:scale-95 transition disabled:opacity-60 min-h-[56px]"
-                >{vacating ? "..." : t("vacate")}</button>
+                  className="flex-1 py-4 bg-brick-600 text-white rounded-2xl text-base font-bold disabled:opacity-60 min-h-[56px]"
+                >{vacating ? "..." : t("vacate")}</TouchButton>
               </div>
             </div>
           </div>
         )}
-      </div>
+      </PageTransition>
       <BottomNav />
     </AuthGuard>
   );

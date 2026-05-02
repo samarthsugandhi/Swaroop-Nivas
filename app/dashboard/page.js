@@ -8,6 +8,7 @@ import HeaderControls from "@/components/HeaderControls";
 import { getDashboardStats, seedUnitsIfNeeded } from "@/lib/firestore";
 import { signOut } from "@/lib/auth";
 import { useLang } from "@/contexts/LangContext";
+import { TouchButton, TouchLink, PageTransition } from "@/components/Touch";
 import {
   Building2, Users, UserPlus, History,
   FileBarChart2, DoorOpen, LogOut, IndianRupee,
@@ -63,7 +64,7 @@ export default function DashboardPage() {
 
   return (
     <AuthGuard>
-      <div className="min-h-screen pb-nav" style={{ background: "var(--sn-bg)" }}>
+      <PageTransition className="min-h-screen pb-nav" style={{ background: "var(--sn-bg)" }}>
         {/* Header */}
         <div className="px-4 pt-12 pb-4" style={{ background: "var(--sn-surface)", borderBottom: "1px solid var(--sn-border)" }}>
           <div className="flex items-center justify-between">
@@ -78,12 +79,12 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-center gap-2">
               <HeaderControls />
-              <button
+              <TouchButton
                 onClick={handleLogout}
-                className="p-2.5 rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 active:scale-95 transition min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="p-2.5 rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 min-h-[44px] min-w-[44px] flex items-center justify-center"
               >
                 <LogOut size={20} />
-              </button>
+              </TouchButton>
             </div>
           </div>
         </div>
@@ -148,19 +149,19 @@ export default function DashboardPage() {
                 { href: "/history",     icon: History,       label: t("history"),   bg: "bg-forest-600 dark:bg-forest-500",  ring: "shadow-forest-100 dark:shadow-forest-950" },
                 { href: "/reports",     icon: FileBarChart2, label: t("reports"),   bg: "bg-ember-600 dark:bg-ember-500",    ring: "shadow-ember-100 dark:shadow-ember-950" },
               ].map(({ href, icon: Icon, label, bg, ring }) => (
-                <Link
+                <TouchLink
                   key={href}
                   href={href}
-                  className={`${bg} rounded-3xl flex flex-col items-center justify-center gap-3 py-7 active:scale-95 transition-transform shadow-lg ${ring}`}
+                  className={`${bg} rounded-3xl flex flex-col items-center justify-center gap-3 py-7 shadow-lg ${ring}`}
                 >
                   <Icon size={32} className="text-white" />
                   <span className="font-bold text-white text-base">{label}</span>
-                </Link>
+                </TouchLink>
               ))}
             </div>
           </div>
         </div>
-      </div>
+      </PageTransition>
       <BottomNav />
     </AuthGuard>
   );

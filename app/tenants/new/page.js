@@ -6,9 +6,9 @@ import AuthGuard from "@/components/AuthGuard";
 import BottomNav from "@/components/BottomNav";
 import HeaderControls from "@/components/HeaderControls";
 import { addTenant } from "@/lib/firestore";
-import { uploadIdProof } from "@/lib/storage";
 import { useLang } from "@/contexts/LangContext";
-import { ArrowLeft, UserPlus, Upload, FileText, X } from "lucide-react";
+import { TouchButton, PageTransition } from "@/components/Touch";
+import { ArrowLeft, UserPlus } from "lucide-react";
 import toast from "react-hot-toast";
 
 const UNIT_OPTIONS = [
@@ -23,23 +23,13 @@ function AddTenantForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { t, lang } = useLang();
-  const fileInputRef = useRef(null);
 
   const [form, setForm] = useState({
     name: "", phone: "", idProof: "", unitId: searchParams.get("unit") || "",
     rentAmount: "", advance: "", moveInDate: new Date().toISOString().split("T")[0],
   });
-  const [file, setFile] = useState(null);
-  const [uploadPct, setUploadPct] = useState(0);
   const [loading, setLoading] = useState(false);
   const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
-
-  function handleFileChange(e) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    if (f.size > 10 * 1024 * 1024) { toast.error("File too large (max 10MB)"); return; }
-    setFile(f);
-  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -50,17 +40,9 @@ function AddTenantForm() {
 
     setLoading(true);
     try {
-      // Upload file first if selected
-      let idProofUrl = null;
-      if (file) {
-        const tempId = `temp_${Date.now()}`;
-        idProofUrl = await uploadIdProof(tempId, file, pct => setUploadPct(pct));
-      }
-
       const tenantId = await addTenant({
         name: form.name.trim(), phone: form.phone.trim(),
         idProof: form.idProof.trim(),
-        idProofUrl: idProofUrl || null,
         unitId: form.unitId,
         rentAmount: Number(form.rentAmount),
         advance: Number(form.advance || 0),
@@ -72,7 +54,7 @@ function AddTenantForm() {
     } catch (err) {
       console.error(err);
       toast.error(t("failedSave"));
-    } finally { setLoading(false); setUploadPct(0); }
+    } finally { setLoading(false); }
   }
 
   const inputCls = "w-full border border-stone-200 dark:border-stone-700 rounded-2xl px-4 py-4 text-base bg-stone-50 dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-walnut-500 placeholder:text-stone-400 transition min-h-[56px]";
@@ -81,13 +63,13 @@ function AddTenantForm() {
   const sectionTitle = "text-sm font-bold text-stone-400 uppercase tracking-widest mb-4";
 
   return (
-    <div className="min-h-screen pb-nav" style={{ background: "var(--sn-bg)" }}>
+    <PageTransition className="min-h-screen pb-nav" style={{ background: "var(--sn-bg)" }}>
       {/* Header */}
       <div className="px-4 pt-12 pb-4" style={{ background: "var(--sn-surface)", borderBottom: "1px solid var(--sn-border)" }}>
         <div className="flex items-center gap-3">
-          <button onClick={() => router.back()} className="p-3 rounded-2xl bg-stone-100 dark:bg-stone-800 active:scale-95 transition min-h-[48px] min-w-[48px] flex items-center justify-center">
+          <TouchButton onClick={() => router.back()} className="p-3 rounded-2xl bg-stone-100 dark:bg-stone-800 min-h-[48px] min-w-[48px] flex items-center justify-center">
             <ArrowLeft size={22} className="text-stone-700 dark:text-stone-300"/>
-          </button>
+          </TouchButton>
           <div className="flex-1">
             <h1 className="text-2xl font-bold text-stone-900 dark:text-stone-50">{t("addTenant")}</h1>
             <p className="text-stone-500 dark:text-stone-400">{t("personalInfo")}</p>
@@ -111,36 +93,6 @@ function AddTenantForm() {
           <div>
             <label className={labelCls}>{t("idProofNote")}</label>
             <input type="text" className={inputCls} placeholder={t("idProofNotePh")} value={form.idProof} onChange={e => set("idProof", e.target.value)}/>
-          </div>
-
-          {/* File upload */}
-          <div>
-            <label className={labelCls}>{t("uploadIdProof")}</label>
-            <input ref={fileInputRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={handleFileChange}/>
-            {file ? (
-              <div className="flex items-center gap-3 p-4 bg-walnut-50 dark:bg-walnut-900 rounded-2xl border border-walnut-200 dark:border-walnut-700">
-                <FileText size={22} className="text-walnut-600 dark:text-walnut-400 flex-shrink-0"/>
-                <span className="flex-1 text-sm text-stone-700 dark:text-stone-300 truncate font-medium">{file.name}</span>
-                <button type="button" onClick={() => { setFile(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
-                  className="text-stone-400 p-1">
-                  <X size={18}/>
-                </button>
-              </div>
-            ) : (
-              <button type="button" onClick={() => fileInputRef.current?.click()}
-                className="w-full flex items-center justify-center gap-3 py-4 border-2 border-dashed border-stone-300 dark:border-stone-700 rounded-2xl text-stone-500 dark:text-stone-400 font-medium text-base active:scale-95 transition min-h-[56px]"
-              >
-                <Upload size={20}/>{t("uploadIdProof")}
-              </button>
-            )}
-            {uploadPct > 0 && uploadPct < 100 && (
-              <div className="mt-3">
-                <div className="bg-stone-100 dark:bg-stone-800 rounded-full h-2.5 overflow-hidden">
-                  <div className="h-full bg-walnut-500 rounded-full transition-all" style={{ width: `${uploadPct}%` }}/>
-                </div>
-                <p className="text-sm text-stone-400 mt-1 text-center">{t("uploading")} {uploadPct}%</p>
-              </div>
-            )}
           </div>
         </div>
 
@@ -170,17 +122,17 @@ function AddTenantForm() {
           </div>
         </div>
 
-        <button
+        <TouchButton
           type="submit"
           disabled={loading}
-          className="w-full bg-walnut-600 dark:bg-walnut-500 text-white py-5 rounded-2xl text-xl font-bold active:scale-95 transition-all shadow-lg flex items-center justify-center gap-3 disabled:opacity-70 min-h-[64px]"
+          className="w-full bg-walnut-600 dark:bg-walnut-500 text-white py-5 rounded-2xl text-xl font-bold shadow-lg flex items-center justify-center gap-3 disabled:opacity-70 min-h-[64px]"
         >
           {loading
             ? <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"/>
             : <><UserPlus size={22}/>{t("addTenant")}</>}
-        </button>
+        </TouchButton>
       </form>
-    </div>
+    </PageTransition>
   );
 }
 
