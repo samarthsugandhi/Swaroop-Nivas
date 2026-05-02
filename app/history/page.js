@@ -10,6 +10,13 @@ import { TouchButton, PageTransition } from "@/components/Touch";
 import { ArrowLeft, Calendar, Clock, IndianRupee, Phone } from "lucide-react";
 import toast from "react-hot-toast";
 
+function formatDate(isoStr) {
+  if (!isoStr) return "—";
+  const [y, m, d] = isoStr.split("-");
+  if (!y || !m || !d) return isoStr;
+  return `${d}/${m}/${y}`;
+}
+
 function getDuration(moveInDate, moveOutDate, t) {
   if (!moveInDate) return "—";
   const start = new Date(moveInDate);
@@ -91,7 +98,7 @@ export default function HistoryPage() {
 
                       <div className="flex items-center gap-1 text-sm text-stone-400 mb-1">
                         <Calendar size={13}/>
-                        <span>{ten.moveInDate || "—"} → {ten.moveOutDate || "present"}</span>
+                        <span>{formatDate(ten.moveInDate)} → {ten.moveOutDate ? formatDate(ten.moveOutDate) : t("present")}</span>
                       </div>
 
                       <div className="flex flex-wrap gap-3">

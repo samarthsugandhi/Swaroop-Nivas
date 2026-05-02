@@ -5,15 +5,16 @@ import { useRouter } from "next/navigation";
 import AuthGuard from "@/components/AuthGuard";
 import BottomNav from "@/components/BottomNav";
 import HeaderControls from "@/components/HeaderControls";
-import { getDashboardStats, seedUnitsIfNeeded } from "@/lib/firestore";
+import { getDashboardStats, seedUnitsIfNeeded, getYearlyStats, splitUtilityBill } from "@/lib/firestore";
 import { signOut } from "@/lib/auth";
 import { useLang } from "@/contexts/LangContext";
-import { TouchButton, TouchLink, PageTransition } from "@/components/Touch";
+import { TouchButton, TouchLink, PageTransition, TouchCard } from "@/components/Touch";
 import {
   Building2, Users, UserPlus, History,
-  FileBarChart2, DoorOpen, LogOut, IndianRupee,
+  FileBarChart2, DoorOpen, LogOut, IndianRupee, Zap, Droplets, Activity
 } from "lucide-react";
 import toast from "react-hot-toast";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 function StatCard({ label, value, borderColor, icon: Icon }) {
   return (
@@ -34,15 +35,27 @@ export default function DashboardPage() {
   const { t } = useLang();
   const now = new Date();
   const [stats, setStats] = useState(null);
+  const [yearlyData, setYearlyData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showSplitter, setShowSplitter] = useState(false);
+  const [splitType, setSplitType] = useState("electricity");
+  const [splitAmt, setSplitAmt] = useState("");
+  const [splitting, setSplitting] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     async function load() {
       try {
         await seedUnitsIfNeeded();
-        const data = await getDashboardStats(now.getMonth() + 1, now.getFullYear());
+        const [data, yearly] = await Promise.all([
+          getDashboardStats(now.getMonth() + 1, now.getFullYear()),
+          getYearlyStats(now.getFullYear())
+        ]);
         setStats(data);
+        
+        const months = t("monthsShort");
+        const chartData = yearly.map((val, i) => ({ name: months[i], revenue: val }));
+        setYearlyData(chartData);
       } catch (e) {
         console.error(e);
         toast.error(t("failedLoad"));
@@ -56,6 +69,18 @@ export default function DashboardPage() {
   async function handleLogout() {
     await signOut();
     router.replace("/login");
+  }
+
+  async function handleSplitUtility() {
+    if (!splitAmt || isNaN(splitAmt) || splitAmt <= 0) return toast.error("Enter valid amount");
+    setSplitting(true);
+    try {
+      await splitUtilityBill(splitType, Number(splitAmt), now.getMonth() + 1, now.getFullYear());
+      toast.success(`${splitType} bill split successfully`);
+      setShowSplitter(false);
+      setSplitAmt("");
+    } catch { toast.error("Failed to split bill"); }
+    finally { setSplitting(false); }
   }
 
   const pct = stats && stats.totalExpected > 0
@@ -90,6 +115,38 @@ export default function DashboardPage() {
         </div>
 
         <div className="px-4 py-5 space-y-6">
+          {/* Quick actions row */}
+          <div className="flex gap-3">
+            <TouchButton onClick={() => setShowSplitter(true)} className="flex-1 bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 py-3 rounded-2xl font-bold flex justify-center items-center gap-2">
+              <Zap size={16}/> Utility Splitter
+            </TouchButton>
+            <TouchLink href="/expenses" className="flex-1 bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 py-3 rounded-2xl font-bold flex justify-center items-center gap-2">
+              <IndianRupee size={16}/> Expenses
+            </TouchLink>
+          </div>
+
+          {/* Yearly Analytics */}
+          <div>
+            <p className="text-sm font-bold text-stone-500 dark:text-stone-400 uppercase tracking-widest mb-3 flex items-center gap-2"><Activity size={16}/> Yearly Revenue ({now.getFullYear()})</p>
+            {loading ? (
+              <div className="h-48 rounded-3xl animate-pulse bg-stone-200 dark:bg-stone-800" />
+            ) : (
+              <div className="h-48 rounded-3xl p-4" style={{ background: "var(--sn-surface)", border: "1px solid var(--sn-border)" }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={yearlyData}>
+                    <XAxis dataKey="name" stroke="#87837c" fontSize={11} tickLine={false} axisLine={false} tickMargin={8} />
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '16px', border: 'none', background: 'var(--sn-surface)', color: 'var(--sn-text)', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}
+                      itemStyle={{ color: '#059669', fontWeight: 'bold' }}
+                      formatter={(val) => `₹${val.toLocaleString("en-IN")}`}
+                    />
+                    <Line type="monotone" dataKey="revenue" stroke="#059669" strokeWidth={4} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+          </div>
+
           {/* Building overview */}
           <div>
             <p className="text-sm font-bold text-stone-500 dark:text-stone-400 uppercase tracking-widest mb-3">{t("buildingOverview")}</p>
@@ -161,6 +218,34 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* Splitter Modal */}
+        {showSplitter && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}>
+            <div className="w-full max-w-lg rounded-t-3xl p-6 space-y-5" style={{ background: "var(--sn-surface)" }}>
+              <h3 className="text-xl font-bold text-stone-900 dark:text-stone-50 flex items-center gap-2"><Zap size={20}/> Utility Splitter</h3>
+              <p className="text-sm text-stone-500">Divide a total bill equally among all active rental units.</p>
+              
+              <div className="flex gap-2">
+                <TouchButton onClick={() => setSplitType("electricity")} className={`flex-1 py-3 rounded-2xl font-bold border ${splitType === 'electricity' ? 'bg-ember-50 border-ember-500 text-ember-700 dark:bg-ember-900/30' : 'bg-transparent border-stone-200 dark:border-stone-700 text-stone-500'}`}>Electricity</TouchButton>
+                <TouchButton onClick={() => setSplitType("water")} className={`flex-1 py-3 rounded-2xl font-bold border ${splitType === 'water' ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-900/30' : 'bg-transparent border-stone-200 dark:border-stone-700 text-stone-500'}`}>Water</TouchButton>
+              </div>
+
+              <input
+                type="number"
+                value={splitAmt}
+                onChange={e => setSplitAmt(e.target.value)}
+                placeholder="Total Bill Amount (e.g. 2000)"
+                className="w-full border border-stone-200 dark:border-stone-700 rounded-2xl px-4 py-4 text-base bg-stone-50 dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-walnut-500"
+              />
+
+              <div className="flex gap-3 mt-2">
+                <TouchButton onClick={() => setShowSplitter(false)} className="flex-1 py-4 bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-200 rounded-2xl font-bold min-h-[56px]">{t("cancel")}</TouchButton>
+                <TouchButton disabled={splitting} onClick={handleSplitUtility} className="flex-1 py-4 bg-walnut-600 text-white rounded-2xl font-bold disabled:opacity-60 min-h-[56px]">{splitting ? "..." : "Split & Apply"}</TouchButton>
+              </div>
+            </div>
+          </div>
+        )}
       </PageTransition>
       <BottomNav />
     </AuthGuard>

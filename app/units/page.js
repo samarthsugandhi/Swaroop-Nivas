@@ -1,17 +1,18 @@
 "use client";
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import AuthGuard from "@/components/AuthGuard";
 import BottomNav from "@/components/BottomNav";
 import HeaderControls from "@/components/HeaderControls";
 import { getUnits, getActiveTenants, getPaymentsByMonthYear } from "@/lib/firestore";
 import { useLang } from "@/contexts/LangContext";
-import { TouchLink, PageTransition } from "@/components/Touch";
+import { TouchCard, PageTransition } from "@/components/Touch";
 import { CheckCircle2, Clock, ChevronRight, IndianRupee, Phone } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function UnitsPage() {
   const { t } = useLang();
+  const router = useRouter();
   const now = new Date();
   const [units, setUnits]       = useState([]);
   const [tenantMap, setTenantMap] = useState({});
@@ -60,9 +61,9 @@ export default function UnitsPage() {
                 const isPaid  = payment?.rentPaid;
 
                 return (
-                  <TouchLink
+                  <TouchCard
                     key={unit.id}
-                    href={`/units/${unit.id}`}
+                    onClick={() => router.push(`/units/${unit.id}`)}
                     className="flex items-center gap-4 p-4 rounded-3xl"
                     style={{ background: "var(--sn-surface)", border: "1px solid var(--sn-border)" }}
                   >
@@ -112,7 +113,7 @@ export default function UnitsPage() {
                     </div>
 
                     <ChevronRight size={22} className="text-stone-300 dark:text-stone-600 flex-shrink-0" />
-                  </TouchLink>
+                  </TouchCard>
                 );
               })}
         </div>

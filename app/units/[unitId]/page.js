@@ -7,26 +7,41 @@ import BottomNav from "@/components/BottomNav";
 import HeaderControls from "@/components/HeaderControls";
 import {
   getUnit, getTenantByUnit, getPaymentsForTenant,
-  getOrCreatePayment, markRentPaid, updateBills,
-  markBillsPaid, vacateTenant, updateUnitNotes,
+  getOrCreatePayment, updateBills,
+  markBillsPaid, vacateTenant, updatePayment, recordRentPayment,
+  resetRentPayment, updateTenant
 } from "@/lib/firestore";
 import { useLang } from "@/contexts/LangContext";
 import { TouchButton, TouchLink, TouchCard, PageTransition } from "@/components/Touch";
 import {
   ArrowLeft, UserPlus, CheckCircle2, Clock, IndianRupee,
   Zap, Droplets, Phone, Calendar, LogOut, ChevronDown,
-  ChevronUp, Save,
+  ChevronUp, Save, RotateCcw, Edit3, Trash2, X
 } from "lucide-react";
 import toast from "react-hot-toast";
 
-function PaymentCard({ payment, rentAmount, onRentPaid, onSaveBills, onBillsPaid, t }) {
+function formatDate(isoStr) {
+  if (!isoStr) return "—";
+  const [y, m, d] = isoStr.split("-");
+  if (!y || !m || !d) return isoStr;
+  return `${d}/${m}/${y}`;
+}
+
+function PaymentCard({ payment, rentAmount, onRentPaid, onResetRent, onSaveBills, onBillsPaid, onSaveNotes, t }) {
   const [open, setOpen] = useState(false);
   const [elec, setElec] = useState(payment.electricityBill || "");
   const [water, setWater] = useState(payment.waterBill || "");
+  const [payAmt, setPayAmt] = useState("");
+  const [notes, setNotes] = useState(payment.notes || "");
   const [busy, setBusy] = useState(false);
   const monthName = t("months")[payment.month - 1];
 
   const inputCls = "w-full border border-stone-200 dark:border-stone-700 rounded-2xl px-4 py-3 text-base bg-stone-50 dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-walnut-500 min-h-[52px]";
+  const legacyFullPaid = payment.rentPaid && (payment.rentPaidAmount === undefined || payment.rentPaidAmount === null);
+  const rentPaidAmt = legacyFullPaid ? Number(rentAmount) : (Number(payment.rentPaidAmount) || 0);
+  const rentExpected = Number(rentAmount) || 0;
+  const rentPending = rentExpected - rentPaidAmt;
+  const progress = rentExpected > 0 ? Math.min(100, Math.round((rentPaidAmt / rentExpected) * 100)) : 0;
 
   return (
     <TouchCard className="rounded-3xl overflow-hidden" style={{ background: "var(--sn-surface)", border: "1px solid var(--sn-border)" }}>
@@ -34,9 +49,11 @@ function PaymentCard({ payment, rentAmount, onRentPaid, onSaveBills, onBillsPaid
         <div>
           <p className="font-bold text-stone-900 dark:text-stone-50 text-lg">{monthName} {payment.year}</p>
           <div className="flex gap-2 mt-1 flex-wrap">
-            {payment.rentPaid
+            {rentPending <= 0
               ? <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-forest-100 dark:bg-forest-900 text-forest-700 dark:text-forest-300"><CheckCircle2 size={11}/>{t("rentPaid")}</span>
-              : <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-ember-100 dark:bg-ember-900 text-ember-700 dark:text-ember-300"><Clock size={11}/>{t("rentPending")}</span>
+              : rentPaidAmt > 0
+              ? <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-ember-100 dark:bg-ember-900 text-ember-700 dark:text-ember-300"><Clock size={11}/>Partial</span>
+              : <span className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-brick-100 dark:bg-brick-900 text-brick-700 dark:text-brick-300"><Clock size={11}/>{t("rentPending")}</span>
             }
             {(payment.electricityBill > 0 || payment.waterBill > 0) && (
               payment.billsPaid
@@ -55,19 +72,61 @@ function PaymentCard({ payment, rentAmount, onRentPaid, onSaveBills, onBillsPaid
           {/* Rent */}
           <div>
             <p className="text-sm font-bold text-stone-400 uppercase tracking-wider mb-3">{t("rent")}</p>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between mb-2">
               <span className="text-lg font-bold text-stone-700 dark:text-stone-300 flex items-center gap-0.5">
-                <IndianRupee size={16}/>{Number(rentAmount).toLocaleString("en-IN")}
+                <IndianRupee size={16}/>{rentExpected.toLocaleString("en-IN")}
               </span>
-              {payment.rentPaid
-                ? <span className="text-sm text-forest-600 dark:text-forest-400 font-semibold">{t("paidOn")} {payment.rentPaidDate}</span>
-                : <TouchButton
-                    disabled={busy}
-                    onClick={async () => { setBusy(true); await onRentPaid(payment.id); setBusy(false); }}
-                    className="px-5 py-3 bg-forest-600 dark:bg-forest-500 text-white rounded-2xl text-base font-bold disabled:opacity-50 min-h-[52px]"
-                  >{t("markPaid")}</TouchButton>
-              }
+              <span className="text-sm font-medium text-stone-500">
+                ₹{rentPaidAmt.toLocaleString("en-IN")} Paid • ₹{Math.max(0, rentPending).toLocaleString("en-IN")} Pending
+              </span>
             </div>
+            
+            {/* Progress Bar */}
+            <div className="bg-stone-100 dark:bg-stone-800 rounded-full h-2 mb-4 overflow-hidden">
+              <div className="h-full bg-forest-500 dark:bg-forest-400 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+            </div>
+
+            {rentPending > 0 && (
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  value={payAmt}
+                  onChange={e => setPayAmt(e.target.value)}
+                  className={`${inputCls} flex-1`}
+                  placeholder={`Amount (e.g. ${rentPending})`}
+                />
+                <TouchButton
+                  disabled={busy || !payAmt}
+                  onClick={async () => {
+                    setBusy(true);
+                    await onRentPaid(payment, payAmt);
+                    setPayAmt("");
+                    setBusy(false);
+                  }}
+                  className="px-5 py-3 bg-forest-600 dark:bg-forest-500 text-white rounded-2xl text-base font-bold disabled:opacity-50 min-h-[52px]"
+                >Pay</TouchButton>
+              </div>
+            )}
+            {rentPending <= 0 && payment.rentPaidDate && (
+              <p className="text-sm text-forest-600 dark:text-forest-400 font-semibold">{t("paidOn")} {formatDate(payment.rentPaidDate)}</p>
+            )}
+
+            {rentPaidAmt > 0 && (
+              <TouchButton
+                disabled={busy}
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  if (confirm("Reset this month's payment to ₹0?")) {
+                    setBusy(true);
+                    await onResetRent(payment.id);
+                    setBusy(false);
+                  }
+                }}
+                className="mt-2 flex items-center gap-1.5 text-stone-400 hover:text-brick-500 text-sm font-medium transition-colors"
+              >
+                <RotateCcw size={14}/> Clear Payment
+              </TouchButton>
+            )}
           </div>
 
           {/* Bills */}
@@ -102,6 +161,23 @@ function PaymentCard({ payment, rentAmount, onRentPaid, onSaveBills, onBillsPaid
               )}
             </div>
           </div>
+
+          {/* Monthly Notes */}
+          <div>
+            <p className="text-sm font-bold text-stone-400 uppercase tracking-wider mb-3">{t("maintenanceNotes")} (This Month)</p>
+            <textarea
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              rows={2}
+              className={`${inputCls} resize-none`}
+              placeholder="Broken tap, leaky roof..."
+            />
+            <TouchButton
+              disabled={busy}
+              onClick={async () => { setBusy(true); await onSaveNotes(payment.id, notes); setBusy(false); }}
+              className="mt-2 w-full py-3 bg-stone-200 dark:bg-stone-700 text-stone-800 dark:text-stone-200 rounded-2xl text-base font-bold disabled:opacity-50 min-h-[52px]"
+            >Save Notes</TouchButton>
+          </div>
         </div>
       )}
     </TouchCard>
@@ -116,26 +192,96 @@ export default function UnitDetailPage() {
   const [unit, setUnit]       = useState(null);
   const [tenant, setTenant]   = useState(null);
   const [payments, setPayments] = useState([]);
-  const [notes, setNotes]     = useState("");
   const [loading, setLoading] = useState(true);
-  const [vacating, setVacating] = useState(false);
-  const [savingNotes, setSavingNotes] = useState(false);
   const [showVacateModal, setShowVacateModal] = useState(false);
   const [vacateDate, setVacateDate] = useState(new Date().toISOString().split("T")[0]);
+  const [vacating, setVacating] = useState(false);
+  const [showEditTenantModal, setShowEditTenantModal] = useState(false);
+  const [editData, setEditData] = useState({ name: "", phone: "", rentAmount: "", advance: "", moveInDate: "" });
   const now = new Date();
 
   async function loadData() {
     try {
       const [u, ten] = await Promise.all([getUnit(unitId), getTenantByUnit(unitId)]);
-      setUnit(u); setTenant(ten); setNotes(u?.notes || "");
+      setUnit(u); setTenant(ten);
       if (ten) {
-        await getOrCreatePayment(ten.id, unitId, now.getMonth() + 1, now.getFullYear());
+        setEditData({
+          name: ten.name,
+          phone: ten.phone,
+          rentAmount: ten.rentAmount,
+          advance: ten.advance || 0,
+          moveInDate: ten.moveInDate || ""
+        });
+        const APP_START = new Date("2026-01-01");
+        const moveIn = new Date(ten.moveInDate || APP_START);
+        
+        let startYear = moveIn.getFullYear();
+        let startMonth = moveIn.getMonth() + 1;
+        if (startYear < 2026) {
+          startYear = 2026;
+          startMonth = 1;
+        }
+
+        const endYear = now.getFullYear();
+        const endMonth = now.getMonth() + 1;
+
+        let currY = startYear;
+        let currM = startMonth;
+        
+        while (currY < endYear || (currY === endYear && currM <= endMonth)) {
+          await getOrCreatePayment(ten.id, unitId, currM, currY);
+          currM++;
+          if (currM > 12) {
+            currM = 1;
+            currY++;
+          }
+        }
+
         const all = await getPaymentsForTenant(ten.id);
-        all.sort((a, b) => b.year !== a.year ? b.year - a.year : b.month - a.month);
-        setPayments(all);
+        
+        // Deduplicate: If multiple records exist for same month/year, pick the Paid one or the first one
+        const uniquePayments = [];
+        const seen = new Set();
+        
+        // Sort: prioritize Paid records so they are picked first in deduplication
+        const sortedForDedupe = [...all].sort((a, b) => (b.rentPaid ? 1 : 0) - (a.rentPaid ? 1 : 0));
+        
+        for (const p of sortedForDedupe) {
+          const key = `${p.month}-${p.year}`;
+          if (!seen.has(key)) {
+            uniquePayments.push(p);
+            seen.add(key);
+          }
+        }
+
+        // Final sort for display (Newest first)
+        uniquePayments.sort((a, b) => b.year !== a.year ? b.year - a.year : b.month - a.month);
+        setPayments(uniquePayments);
       }
     } catch { toast.error(t("failedLoad")); }
     finally { setLoading(false); }
+  }
+
+  async function handleResetRent(paymentId) {
+    try {
+      await resetRentPayment(paymentId);
+      toast.success("Payment reset");
+      await loadData();
+    } catch { toast.error("Reset failed"); }
+  }
+
+  async function handleUpdateTenant(e) {
+    e.preventDefault();
+    try {
+      await updateTenant(tenant.id, {
+        ...editData,
+        rentAmount: Number(editData.rentAmount),
+        advance: Number(editData.advance)
+      });
+      toast.success("Tenant updated");
+      setShowEditTenantModal(false);
+      await loadData();
+    } catch { toast.error("Update failed"); }
   }
 
   useEffect(() => { loadData(); }, [unitId]);
@@ -151,16 +297,12 @@ export default function UnitDetailPage() {
     finally { setVacating(false); }
   }
 
-  async function handleSaveNotes() {
-    setSavingNotes(true);
-    try { await updateUnitNotes(unitId, notes); toast.success(t("notesSaved")); }
-    catch { toast.error(t("failedSave")); }
-    finally { setSavingNotes(false); }
-  }
-
   // Running balance
   const totalExpected = payments.reduce((s, p) => s + (tenant ? Number(tenant.rentAmount) || 0 : 0), 0);
-  const totalPaid     = payments.filter(p => p.rentPaid).reduce((s, p) => s + (Number(tenant?.rentAmount) || 0), 0);
+  const totalPaid     = payments.reduce((s, p) => {
+    const isLegacyPaid = p.rentPaid && (p.rentPaidAmount === undefined || p.rentPaidAmount === null);
+    return s + (isLegacyPaid ? Number(tenant?.rentAmount || 0) : (Number(p.rentPaidAmount) || 0));
+  }, 0);
 
   const inputCls = "w-full border border-stone-200 dark:border-stone-700 rounded-2xl px-4 py-4 text-base bg-stone-50 dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-walnut-500 min-h-[56px]";
   const sectionTitle = "text-sm font-bold text-stone-400 dark:text-stone-500 uppercase tracking-widest mb-3";
@@ -225,7 +367,12 @@ export default function UnitDetailPage() {
           {!isOwner && tenant && (
             <>
               <div className="rounded-3xl p-5 space-y-4" style={card}>
-                <p className={sectionTitle}>{t("tenantDetails")}</p>
+                <div className="flex items-center justify-between mb-1">
+                  <p className={sectionTitle}>{t("tenantDetails")}</p>
+                  <TouchButton onClick={() => setShowEditTenantModal(true)} className="p-2 text-walnut-600 dark:text-walnut-400">
+                    <Edit3 size={18}/>
+                  </TouchButton>
+                </div>
                 <div className="flex items-center gap-4">
                   <div className="w-16 h-16 bg-walnut-100 dark:bg-walnut-900 rounded-2xl flex items-center justify-center text-2xl font-bold text-walnut-700 dark:text-walnut-300 flex-shrink-0">
                     {tenant.name.charAt(0).toUpperCase()}
@@ -242,7 +389,7 @@ export default function UnitDetailPage() {
                   {[
                     { label: t("rent"),    value: `₹${Number(tenant.rentAmount).toLocaleString("en-IN")}` },
                     { label: t("advance"), value: `₹${Number(tenant.advance||0).toLocaleString("en-IN")}` },
-                    { label: t("moveIn"),  value: tenant.moveInDate, icon: <Calendar size={13}/> },
+                    { label: t("moveIn"),  value: formatDate(tenant.moveInDate), icon: <Calendar size={13}/> },
                     { label: t("idProof"), value: tenant.idProof || "—" },
                   ].map(row => (
                     <div key={row.label} className="bg-stone-50 dark:bg-stone-800 rounded-2xl p-3">
@@ -282,9 +429,15 @@ export default function UnitDetailPage() {
                   {payments.map(p => (
                     <PaymentCard
                       key={p.id} payment={p} rentAmount={tenant.rentAmount} t={t}
-                      onRentPaid={async id => { await markRentPaid(id); toast.success(t("rentMarkedPaid")); await loadData(); }}
+                      onRentPaid={async (pmt, amt) => { 
+                        await recordRentPayment(tenant.id, unitId, Number(amt), pmt.month, pmt.year, tenant.rentAmount);
+                        toast.success("Payment recorded"); 
+                        await loadData(); 
+                      }}
+                      onResetRent={handleResetRent}
                       onSaveBills={async (id, e, w) => { await updateBills(id, e||0, w||0); toast.success(t("billsSaved")); await loadData(); }}
                       onBillsPaid={async id => { await markBillsPaid(id); toast.success(t("billsMarkedPaid")); await loadData(); }}
+                      onSaveNotes={async (id, n) => { await updatePayment(id, { notes: n }); toast.success("Notes saved"); await loadData(); }}
                     />
                   ))}
                 </div>
@@ -292,26 +445,6 @@ export default function UnitDetailPage() {
             </>
           )}
 
-          {/* Notes section (all non-owner units) */}
-          {!isOwner && (
-            <div className="rounded-3xl p-5" style={card}>
-              <p className={sectionTitle}>{t("maintenanceNotes")}</p>
-              <textarea
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                rows={3}
-                placeholder={t("notesPlaceholder")}
-                className="w-full border border-stone-200 dark:border-stone-700 rounded-2xl px-4 py-3 text-base bg-stone-50 dark:bg-stone-800 text-stone-900 dark:text-stone-100 focus:outline-none focus:ring-2 focus:ring-walnut-500 resize-none"
-              />
-              <TouchButton
-                disabled={savingNotes}
-                onClick={handleSaveNotes}
-                className="mt-3 w-full py-3.5 bg-walnut-600 dark:bg-walnut-500 text-white rounded-2xl text-base font-bold flex items-center justify-center gap-2 disabled:opacity-60 min-h-[52px]"
-              >
-                <Save size={18}/>{t("saveNotes")}
-              </TouchButton>
-            </div>
-          )}
         </div>
 
         {/* Vacate modal */}
@@ -336,6 +469,50 @@ export default function UnitDetailPage() {
                   className="flex-1 py-4 bg-brick-600 text-white rounded-2xl text-base font-bold disabled:opacity-60 min-h-[56px]"
                 >{vacating ? "..." : t("vacate")}</TouchButton>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Tenant Modal */}
+        {showEditTenantModal && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ background: "rgba(0,0,0,0.5)" }}>
+            <div className="w-full max-w-lg rounded-t-3xl p-6 space-y-5 animate-slide-up" style={{ background: "var(--sn-surface)" }}>
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold text-stone-900 dark:text-stone-50">Edit Tenant</h3>
+                <TouchButton onClick={() => setShowEditTenantModal(false)} className="p-2 text-stone-400">
+                  <X size={24}/>
+                </TouchButton>
+              </div>
+              
+              <form onSubmit={handleUpdateTenant} className="space-y-4 max-h-[70vh] overflow-y-auto px-1">
+                <div>
+                  <label className="block text-sm font-semibold text-stone-500 mb-1.5">{t("fullName")}</label>
+                  <input type="text" value={editData.name} onChange={e => setEditData({...editData, name: e.target.value})} className={inputCls} />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-stone-500 mb-1.5">{t("phoneNumber")}</label>
+                  <input type="text" value={editData.phone} onChange={e => setEditData({...editData, phone: e.target.value})} className={inputCls} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-semibold text-stone-500 mb-1.5">Rent (₹)</label>
+                    <input type="number" value={editData.rentAmount} onChange={e => setEditData({...editData, rentAmount: e.target.value})} className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-stone-500 mb-1.5">Advance (₹)</label>
+                    <input type="number" value={editData.advance} onChange={e => setEditData({...editData, advance: e.target.value})} className={inputCls} />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-stone-500 mb-1.5">{t("moveInDate")}</label>
+                  <input type="date" value={editData.moveInDate} onChange={e => setEditData({...editData, moveInDate: e.target.value})} className={inputCls} />
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <TouchButton type="button" onClick={() => setShowEditTenantModal(false)} className="flex-1 py-4 bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-200 rounded-2xl font-bold">{t("cancel")}</TouchButton>
+                  <TouchButton type="submit" className="flex-1 py-4 bg-walnut-600 text-white rounded-2xl font-bold">{t("save")}</TouchButton>
+                </div>
+              </form>
             </div>
           </div>
         )}
