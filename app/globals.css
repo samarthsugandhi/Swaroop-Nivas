@@ -1,26 +1,62 @@
 @import "tailwindcss";
 
+/* ─── Custom dark variant tied to data-theme attribute ─── */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ─── Theme-aware CSS variables ─── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --sn-bg:      #FAF6F1;
+  --sn-surface: #FFFFFF;
+  --sn-border:  #E8DDD4;
+  --sn-text:    #1A1008;
+  --sn-muted:   #7A6558;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+[data-theme="dark"] {
+  --sn-bg:      #1A1008;
+  --sn-surface: #2C2015;
+  --sn-border:  #3D2F20;
+  --sn-text:    #F5EDE0;
+  --sn-muted:   #A8917E;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--sn-bg);
+  color: var(--sn-text);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
+
+/* ─── Custom earthy color palette ─── */
+@theme {
+  --color-walnut-50:  #FAF6F1;
+  --color-walnut-100: #F0E8DC;
+  --color-walnut-200: #E0CDB8;
+  --color-walnut-300: #C9A882;
+  --color-walnut-400: #B8885A;
+  --color-walnut-500: #9C6644;
+  --color-walnut-600: #7C4F31;
+  --color-walnut-700: #5C3820;
+  --color-walnut-800: #3D2510;
+  --color-walnut-900: #2A1808;
+  --color-walnut-950: #1A1008;
+
+  --color-forest-400: #6FAA85;
+  --color-forest-500: #4A7C5C;
+  --color-forest-600: #366048;
+  --color-forest-700: #24432F;
+
+  --color-ember-400: #E09A5C;
+  --color-ember-500: #C17A3A;
+  --color-ember-600: #9C5E25;
+
+  --color-brick-400: #C4614F;
+  --color-brick-500: #9B3A2C;
+  --color-brick-600: #782C20;
+}
+
+/* ─── Safe area + base resets ─── */
+* { -webkit-tap-highlight-color: transparent; }
+body { overscroll-behavior: none; }
+
+.safe-bottom { padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+.pb-nav { padding-bottom: 90px; }
