@@ -10,7 +10,11 @@ const geist = Geist({ subsets: ["latin"] });
 
 export const metadata = {
   title: "Swaroop Nivas",
-  description: "Rental Management App for Swaroop Nivas building",
+  description: "Premium Rental Management System",
+  icons: {
+    icon: "/icon.png",
+    apple: "/apple-icon.png",
+  },
 };
 
 export const viewport = {
