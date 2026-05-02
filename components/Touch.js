@@ -33,24 +33,25 @@ export const TouchButton = forwardRef(({ onClick, children, className, disabled,
 });
 TouchButton.displayName = "TouchButton";
 
+const MotionLink = motion.create ? motion.create(Link) : motion(Link);
+
 /**
  * A highly responsive Link wrapper.
  */
 export const TouchLink = forwardRef(({ href, children, className, onClick, ...props }, ref) => {
   return (
-    <Link href={href} passHref legacyBehavior>
-      <motion.a
-        ref={ref}
-        whileTap={{ scale: 0.95 }}
-        whileHover={{ scale: 1.02 }}
-        onTapStart={vibrate}
-        onClick={onClick}
-        className={`${className} touch-manipulation block`}
-        {...props}
-      >
-        {children}
-      </motion.a>
-    </Link>
+    <MotionLink
+      href={href}
+      ref={ref}
+      whileTap={{ scale: 0.95 }}
+      whileHover={{ scale: 1.02 }}
+      onTapStart={vibrate}
+      onClick={onClick}
+      className={`${className} touch-manipulation block`}
+      {...props}
+    >
+      {children}
+    </MotionLink>
   );
 });
 TouchLink.displayName = "TouchLink";
